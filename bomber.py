@@ -13,7 +13,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Cal
 # ⚙️ CONFIG & ADMIN SETUP
 # ==============================================
 ADMIN_ID = 8327651808  # Aapki Admin User ID
-WELCOME_PHOTO = "pfp.jpg"  # Photo filename
+WELCOME_PHOTO = "pfp.jpg.jpeg"  # Photo filename
 
 USERS_DB = {}  # Stores user points & data
 PROTECTED_NUMBERS = {}  # Protected numbers list
@@ -273,9 +273,11 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_pts = USERS_DB[user_id]["points"]
     welcome_text = (
-        "╔═══════════════════════════════════╗\n"
-        "║   🐉 *DROON ULTIMATE v5.0 MAXX* 🐉   ║\n"
-        "╚═══════════════════════════════════╝\n\n"
+        "╔══════════════════════════════╗\n"
+        
+        "║🐉*✨ ⃝🇺🇸𓆩MAX BOMBER¡!𓆪🚬𓆪🍷𓆪࿐*🐉   ║\n"
+        
+        "╚══════════════════════════════╝\n\n"
         "✨ *CYBER LUXURY CONTROL PANEL*\n"
         "👤 *Developer:* `@K4xHERE`\n"
         f"👑 *Role:* `{'Admin 🛡️' if user_id == ADMIN_ID else 'Authorized User'}`\n"
