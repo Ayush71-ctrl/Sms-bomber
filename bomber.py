@@ -273,11 +273,11 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_pts = USERS_DB[user_id]["points"]
     welcome_text = (
-        "╔══════════════════════════════╗\n"
+        "╔════════════════════════════╗\n"
         
         "║🐉*✨ ⃝🇺🇸𓆩MAX BOMBER¡!𓆪🚬𓆪🍷𓆪࿐*🐉   ║\n"
         
-        "╚══════════════════════════════╝\n\n"
+        "╚════════════════════════════╝\n\n"
         "✨ *CYBER LUXURY CONTROL PANEL*\n"
         "👤 *Developer:* `@K4xHERE`\n"
         f"👑 *Role:* `{'Admin 🛡️' if user_id == ADMIN_ID else 'Authorized User'}`\n"
