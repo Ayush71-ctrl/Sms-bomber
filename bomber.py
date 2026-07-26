@@ -5,6 +5,7 @@ import random
 import threading
 import datetime
 import requests
+from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
@@ -12,12 +13,24 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Cal
 # ⚙️ CONFIG & ADMIN SETUP
 # ==============================================
 ADMIN_ID = 8327651808  # Aapki Admin User ID
-WELCOME_PHOTO = "pfp.jpg.jpeg"  # Photo filename
+WELCOME_PHOTO = "pfp.jpg"  # Photo filename
 
 USERS_DB = {}  # Stores user points & data
 PROTECTED_NUMBERS = {}  # Protected numbers list
 REQUIRED_CHANNEL = ""  # Force sub channel/link
 LAST_RESPONSE_MSG = {}
+
+# ==============================================
+# 🌐 FLASK SERVER FOR 24x7 RENDER FREE HOSTING
+# ==============================================
+web_app = Flask('')
+
+@web_app.route('/')
+def home():
+    return "Bot is active and running 24x7!"
+
+def run_web():
+    web_app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # ==============================================
 # 💥 ALL WORKING APIS (MASKED NAMES FOR SECURITY)
@@ -179,7 +192,7 @@ class BombingEngine:
 engine = BombingEngine()
 
 # ==============================================
-# 💎 PRO KEYBOARD LAYOUT (FIXED & STRUCTURED)
+# 💎 PRO KEYBOARD LAYOUT
 # ==============================================
 def get_reply_keyboard(user_id):
     keyboard = [
@@ -260,11 +273,9 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_pts = USERS_DB[user_id]["points"]
     welcome_text = (
-        "╔══════════════════════════════╗\n"
-        
-        " ║🐉*✨ ⃝🇺🇸𓆩MAX BOMBER¡!𓆪🚬𓆪🍷𓆪࿐*🐉║\n"
-        
-        "╚══════════════════════════════╝\n\n"
+        "╔═══════════════════════════════════╗\n"
+        "║   🐉 *DROON ULTIMATE v5.0 MAXX* 🐉   ║\n"
+        "╚═══════════════════════════════════╝\n\n"
         "✨ *CYBER LUXURY CONTROL PANEL*\n"
         "👤 *Developer:* `@K4xHERE`\n"
         f"👑 *Role:* `{'Admin 🛡️' if user_id == ADMIN_ID else 'Authorized User'}`\n"
@@ -383,7 +394,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         info = (
             "⚙️ *MAXX ULTRA CORE INFO*\n\n"
             "• *Developer:* `@K4xHERE`\n"
-            "• *Version:* `5.0 KEYBOARD FIXED`\n"
+            "• *Version:* `5.0 RENDER WEB DEPLOY`\n"
             "• *Status:* `🟢 Online & Fully Operational`"
         )
         await update_dynamic_message(update, context, info)
@@ -462,7 +473,7 @@ async def cmd_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update_dynamic_message(update, context, msg)
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if REQUIRED_CHANNEL and not await check_subscription(context.bot, user_id):
+    if REQUIRED_CHANNEL and not await check_subscription(context.bot, update.effective_user.id):
         await show_welcome(update, context)
         return
     if not context.args:
@@ -473,7 +484,7 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update_dynamic_message(update, context, msg)
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if REQUIRED_CHANNEL and not await check_subscription(context.bot, user_id):
+    if REQUIRED_CHANNEL and not await check_subscription(context.bot, update.effective_user.id):
         await show_welcome(update, context)
         return
     statuses = engine.get_status()
@@ -541,8 +552,13 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("💎 Keyboard Fixed Maxx Bot (@K4xHERE) is live...")
+    print("💎 Render Free Web-Service Bot (@K4xHERE) is live...")
     app.run_polling()
 
 if __name__ == "__main__":
+    main()
+
+if __name__ == "__main__":
+    # Flask web server background mein chalega taaki Render port detect kar sake (Free Web Service trick)
+    threading.Thread(target=run_web, daemon=True).start()
     main()
