@@ -540,7 +540,7 @@ async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"❌ Failed to publish to channel. Make sure bot is admin there.\nError: {e}")
 
 def main():
-    TOKEN = "8897752998:AAF1F0GfgL8TjV-0-gd7ZgCF3jNLZAg0yrI"
+    TOKEN = "8727210761:AAExnYPf8Twaud3umNGOtHQR-79MlZUsnmQ"
     
     app = ApplicationBuilder().token(TOKEN).build()
     
