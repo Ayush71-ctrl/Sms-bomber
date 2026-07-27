@@ -10,18 +10,18 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboard
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 # ==============================================
-# ⚙️ CONFIG & ADMIN SETUP
+# ⚙️ CONFIG & DUAL ADMIN SETUP
 # ==============================================
-ADMIN_ID = 8327651808  # Aapki Admin User ID
-WELCOME_PHOTO = "pfp.jpg.jpeg"  # Photo filename
+ADMIN_IDS = [8327651808, 8757231057]  # Aapki aur friend ki Admin IDs
+WELCOME_PHOTO = "pfp.jpg"  # Photo filename
 
-USERS_DB = {}  # Stores user points & data
-PROTECTED_NUMBERS = {}  # Protected numbers list
-REQUIRED_CHANNEL = ""  # Force sub channel/link
+USERS_DB = {}  
+PROTECTED_NUMBERS = {}  
+GLOBAL_CONFIG = {"required_channel": ""}  
 LAST_RESPONSE_MSG = {}
 
 # ==============================================
-# 🌐 FLASK SERVER FOR 24x7 RENDER FREE HOSTING
+# 🌐 FLASK SERVER FOR RENDER PORT BINDING
 # ==============================================
 web_app = Flask('')
 
@@ -30,7 +30,8 @@ def home():
     return "Bot is active and running 24x7!"
 
 def run_web():
-    web_app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    port = int(os.environ.get('PORT', 10000))
+    web_app.run(host='0.0.0.0', port=port)
 
 # ==============================================
 # 💥 ALL WORKING APIS (MASKED NAMES FOR SECURITY)
@@ -202,7 +203,7 @@ def get_reply_keyboard(user_id):
         [KeyboardButton("⚡ Engine Speed"), KeyboardButton("📋 Attack Logs")],
         [KeyboardButton("⚙️ System Info")]
     ]
-    if user_id == ADMIN_ID:
+    if user_id in ADMIN_IDS:
         keyboard.append([KeyboardButton("👥 Total Users"), KeyboardButton("📢 Broadcast")])
         keyboard.append([KeyboardButton("📢 Channel Broadcast"), KeyboardButton("➕ Add Custom API")])
         keyboard.append([KeyboardButton("📢 Set Join Channel"), KeyboardButton("❌ Remove Join Channel")])
@@ -220,10 +221,11 @@ def parse_channel_target(link_or_username):
     return target
 
 async def check_subscription(bot, user_id):
-    if not REQUIRED_CHANNEL:
+    req_ch = GLOBAL_CONFIG["required_channel"]
+    if not req_ch:
         return True
     try:
-        channel_to_check = parse_channel_target(REQUIRED_CHANNEL)
+        channel_to_check = parse_channel_target(req_ch)
         member = await bot.get_chat_member(chat_id=channel_to_check, user_id=user_id)
         if member.status in ['member', 'administrator', 'creator']:
             return True
@@ -250,11 +252,12 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-    if REQUIRED_CHANNEL:
+    req_ch = GLOBAL_CONFIG["required_channel"]
+    if req_ch:
         is_joined = await check_subscription(context.bot, user_id)
         if not is_joined:
             keyboard = []
-            ch_target = REQUIRED_CHANNEL.strip()
+            ch_target = req_ch.strip()
             if "t.me/" in ch_target:
                 keyboard.append([InlineKeyboardButton("📢 Join Channel", url=ch_target)])
             else:
@@ -272,15 +275,14 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
     user_pts = USERS_DB[user_id]["points"]
+    role_str = "Admin 🛡️" if user_id in ADMIN_IDS else "Authorized User"
     welcome_text = (
-        "╔════════════════════════════╗\n"
-        
-        "║🐉*✨ ⃝🇺🇸𓆩MAX BOMBER¡!𓆪🚬𓆪🍷𓆪࿐*🐉   ║\n"
-        
-        "╚════════════════════════════╝\n\n"
+        "╔═══════════════════════════════════╗\n"
+        "║   🐉 *DROON ULTIMATE v5.0 MAXX* 🐉   ║\n"
+        "╚═══════════════════════════════════╝\n\n"
         "✨ *CYBER LUXURY CONTROL PANEL*\n"
         "👤 *Developer:* `@K4xHERE`\n"
-        f"👑 *Role:* `{'Admin 🛡️' if user_id == ADMIN_ID else 'Authorized User'}`\n"
+        f"👑 *Role:* `{role_str}`\n"
         f"💎 *Your Points:* `{user_pts} Points` *(2 Points = 1 Bomber Target)*\n\n"
         "👇 Use the permanent keyboard buttons below or commands:\n"
         "• `/bomb <10-digit-number>`\n"
@@ -327,7 +329,7 @@ async def update_dynamic_message(update: Update, context: ContextTypes.DEFAULT_T
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
     
-    if REQUIRED_CHANNEL:
+    if GLOBAL_CONFIG["required_channel"]:
         is_joined = await check_subscription(context.bot, user_id)
         if not is_joined:
             await show_welcome(update, context)
@@ -396,48 +398,45 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         info = (
             "⚙️ *MAXX ULTRA CORE INFO*\n\n"
             "• *Developer:* `@K4xHERE`\n"
-            "• *Version:* `5.0 RENDER WEB DEPLOY`\n"
+            "• *Version:* `5.0 CLOUD SYNC FIXED`\n"
             "• *Status:* `🟢 Online & Fully Operational`"
         )
         await update_dynamic_message(update, context, info)
     elif text == "👥 Total Users":
-        if user_id != ADMIN_ID: return
+        if user_id not in ADMIN_IDS: return
         await update_dynamic_message(update, context, f"👥 *Total Bot Users Statistics*\n\n• *Unique Users Interacted:* `{len(USERS_DB)} Users`")
     elif text == "📢 Broadcast":
-        if user_id != ADMIN_ID: return
+        if user_id not in ADMIN_IDS: return
         await update_dynamic_message(update, context, "📢 *Bot Users Broadcast Mode*\n\nSend your message using format:\n`/broadcast <your message>`")
     elif text == "📢 Channel Broadcast":
-        if user_id != ADMIN_ID: return
+        if user_id not in ADMIN_IDS: return
         await update_dynamic_message(update, context, "📢 *Channel Broadcast Mode*\n\nSend your message using format:\n`/channelbroadcast <your message>`")
     elif text == "➕ Add Custom API":
-        if user_id != ADMIN_ID: return
+        if user_id not in ADMIN_IDS: return
         await update_dynamic_message(update, context, "➕ *Add API Mode*\n\nTo add custom APIs, update endpoints directly in `bomber.py` under `APIManager`.")
     elif text == "📢 Set Join Channel":
-        if user_id != ADMIN_ID: return
+        if user_id not in ADMIN_IDS: return
         await update_dynamic_message(update, context, "📢 *Set Channel Mode*\n\nSend command in chat:\n`/setchannel @Username` or paste full Invite Link.")
     elif text == "❌ Remove Join Channel":
-        if user_id != ADMIN_ID: return
-        global REQUIRED_CHANNEL
-        REQUIRED_CHANNEL = ""
+        if user_id not in ADMIN_IDS: return
+        GLOBAL_CONFIG["required_channel"] = ""
         await update_dynamic_message(update, context, "✅ *Join Channel Successfully Removed!*")
 
 async def cmd_setchannel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global REQUIRED_CHANNEL
-    if update.effective_user.id != ADMIN_ID:
+    if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ Unauthorized!")
         return
     if not context.args:
-        await update.message.reply_text(f"Current Join Channel: `{REQUIRED_CHANNEL or 'None'}`\n\nUsage: `/setchannel @Username` or `/setchannel <InviteLink>`", parse_mode="Markdown")
+        await update.message.reply_text(f"Current Join Channel: `{GLOBAL_CONFIG['required_channel'] or 'None'}`\n\nUsage: `/setchannel @Username` or `/setchannel <InviteLink>`", parse_mode="Markdown")
         return
-    REQUIRED_CHANNEL = " ".join(context.args)
-    await update.message.reply_text(f"✅ Required Join Channel set to: `{REQUIRED_CHANNEL}`", parse_mode="Markdown")
+    GLOBAL_CONFIG["required_channel"] = " ".join(context.args)
+    await update.message.reply_text(f"✅ Required Join Channel successfully set to: `{GLOBAL_CONFIG['required_channel']}`", parse_mode="Markdown")
 
 async def cmd_removechannel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global REQUIRED_CHANNEL
-    if update.effective_user.id != ADMIN_ID:
+    if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ Unauthorized!")
         return
-    REQUIRED_CHANNEL = ""
+    GLOBAL_CONFIG["required_channel"] = ""
     await update.message.reply_text("✅ *Join Channel Removed Successfully!*", parse_mode="Markdown")
 
 async def cmd_protect(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -453,7 +452,7 @@ async def cmd_protect(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if REQUIRED_CHANNEL and not await check_subscription(context.bot, user_id):
+    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
         
@@ -475,7 +474,8 @@ async def cmd_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update_dynamic_message(update, context, msg)
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if REQUIRED_CHANNEL and not await check_subscription(context.bot, update.effective_user.id):
+    user_id = update.effective_user.id
+    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
     if not context.args:
@@ -486,7 +486,8 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update_dynamic_message(update, context, msg)
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if REQUIRED_CHANNEL and not await check_subscription(context.bot, update.effective_user.id):
+    user_id = update.effective_user.id
+    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
     statuses = engine.get_status()
@@ -500,7 +501,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if user_id != ADMIN_ID:
+    if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized!")
         return
     if not context.args:
@@ -519,10 +520,11 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if user_id != ADMIN_ID:
+    if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized!")
         return
-    if not REQUIRED_CHANNEL:
+    req_ch = GLOBAL_CONFIG["required_channel"]
+    if not req_ch:
         await update.message.reply_text("❌ No Join Channel is currently set! Use `/setchannel` first.")
         return
     if not context.args:
@@ -531,7 +533,7 @@ async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYP
     
     broadcast_msg = " ".join(context.args)
     try:
-        ch_target = parse_channel_target(REQUIRED_CHANNEL)
+        ch_target = parse_channel_target(req_ch)
         await context.bot.send_message(chat_id=ch_target, text=f"📢 *Announcement:*\n\n{broadcast_msg}", parse_mode="Markdown")
         await update.message.reply_text("✅ Successfully published to the Channel!", parse_mode="Markdown")
     except Exception as e:
@@ -554,13 +556,10 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("💎 Render Free Web-Service Bot (@K4xHERE) is live...")
+    print("💎 Dual Admin Cloud-Sync Bot (@K4xHERE) is live...")
     app.run_polling()
 
 if __name__ == "__main__":
-    main()
-
-if __name__ == "__main__":
-    # Flask web server background mein chalega taaki Render port detect kar sake (Free Web Service trick)
+    # Start Flask Web Server in background for Render Port Binding
     threading.Thread(target=run_web, daemon=True).start()
     main()
