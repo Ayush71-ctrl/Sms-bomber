@@ -18,7 +18,8 @@ WELCOME_PHOTO = "pfp.jpg.jpeg"
 
 USERS_DB = {}  
 PROTECTED_NUMBERS = {}  
-GLOBAL_CONFIG = {"required_channel": ""}  
+# Ab yeh multiple channels ya single link dono ko support karega (List format)
+GLOBAL_CONFIG = {"required_channels": []}  
 LAST_RESPONSE_MSG = {}
 
 # ==============================================
@@ -220,21 +221,26 @@ def parse_channel_target(link_or_username):
         ch = parts[1].split("/")[0].split("?")[0]
         if not ch.startswith("+") and not ch.startswith("joinchat"):
             return f"@{ch}"
+        else:
+            return target  # Private invite link as it is
     return target
 
 async def check_subscription(bot, user_id):
-    req_ch = GLOBAL_CONFIG["required_channel"]
-    if not req_ch:
+    channels = GLOBAL_CONFIG["required_channels"]
+    if not channels:
         return True
-    try:
-        channel_to_check = parse_channel_target(req_ch)
-        member = await bot.get_chat_member(chat_id=channel_to_check, user_id=user_id)
-        if member.status in ['member', 'administrator', 'creator']:
-            return True
-    except Exception as e:
-        print(f"ForceSub Check Error: {e}")
-        # Fallback agar API check mein koi restriction ho toh user ko block na kare
-        return True
+    
+    # Agar user kisi bhi ek set kiye gaye channel mein joined hai toh pass ho jayega
+    for ch_link in channels:
+        try:
+            channel_to_check = parse_channel_target(ch_link)
+            member = await bot.get_chat_member(chat_id=channel_to_check, user_id=user_id)
+            if member.status in ['member', 'administrator', 'creator']:
+                return True
+        except Exception as e:
+            print(f"Check sub error for {ch_link}: {e}")
+            continue
+            
     return False
 
 async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -256,23 +262,24 @@ async def show_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-    req_ch = GLOBAL_CONFIG["required_channel"]
-    if req_ch:
+    channels = GLOBAL_CONFIG["required_channels"]
+    if channels:
         is_joined = await check_subscription(context.bot, user_id)
         if not is_joined:
             keyboard = []
-            ch_target = req_ch.strip()
-            if "t.me/" in ch_target:
-                keyboard.append([InlineKeyboardButton("📢 Join Channel", url=ch_target)])
-            else:
-                clean_ch = ch_target.replace('@', '')
-                keyboard.append([InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{clean_ch}")])
+            for ch_target in channels:
+                ch_target = ch_target.strip()
+                if "t.me/" in ch_target:
+                    keyboard.append([InlineKeyboardButton("📢 Join Channel", url=ch_target)])
+                else:
+                    clean_ch = ch_target.replace('@', '')
+                    keyboard.append([InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{clean_ch}")])
                 
             keyboard.append([InlineKeyboardButton("✅ I Have Joined", callback_data="check_join")])
             
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="⚠️ *Access Denied!*\n\nYou must join our official channel first to use this bot.",
+                text="⚠️ *Access Denied!*\n\nYou must join our official channels first to use this bot.",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
@@ -327,13 +334,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
             await show_welcome(update, context)
         else:
-            await query.answer("❌ You have not joined the channel yet! Please join first.", show_alert=True)
+            await query.answer("❌ You have not joined all required channels yet!", show_alert=True)
 
 async def update_dynamic_message(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
     
-    if GLOBAL_CONFIG["required_channel"]:
+    if GLOBAL_CONFIG["required_channels"]:
         is_joined = await check_subscription(context.bot, user_id)
         if not is_joined:
             await show_welcome(update, context)
@@ -402,7 +409,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         info = (
             "⚙️ *MAXX ULTRA CORE INFO*\n\n"
             "• *Developer:* `@K4xHERE`\n"
-            "• *Version:* `5.0 FORCESUB FIXED`\n"
+            "• *Version:* `5.0 MULTI-CHANNEL FIXED`\n"
             "• *Status:* `🟢 Online & Fully Operational`"
         )
         await update_dynamic_message(update, context, info)
@@ -420,28 +427,34 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_dynamic_message(update, context, "➕ *Add API Mode*\n\nTo add custom APIs, update endpoints directly in `bomber.py` under `APIManager`.")
     elif text == "📢 Set Join Channel":
         if user_id not in ADMIN_IDS: return
-        await update_dynamic_message(update, context, "📢 *Set Channel Mode*\n\nSend command in chat:\n`/setchannel @Username` or paste full Invite Link.")
+        ch_list = ", ".join(GLOBAL_CONFIG["required_channels"]) if GLOBAL_CONFIG["required_channels"] else "None"
+        await update_dynamic_message(update, context, f"📢 *Set Channel Mode*\n\nCurrent Channels: `{ch_list}`\n\nSend command in chat to add:\n`/setchannel @Username` or paste Invite Link.")
     elif text == "❌ Remove Join Channel":
         if user_id not in ADMIN_IDS: return
-        GLOBAL_CONFIG["required_channel"] = ""
-        await update_dynamic_message(update, context, "✅ *Join Channel Successfully Removed!*")
+        GLOBAL_CONFIG["required_channels"] = []
+        await update_dynamic_message(update, context, "✅ *All Join Channels Successfully Removed!*")
 
 async def cmd_setchannel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ Unauthorized!")
         return
     if not context.args:
-        await update.message.reply_text(f"Current Join Channel: `{GLOBAL_CONFIG['required_channel'] or 'None'}`\n\nUsage: `/setchannel @Username` or `/setchannel <InviteLink>`", parse_mode="Markdown")
+        ch_list = ", ".join(GLOBAL_CONFIG["required_channels"]) if GLOBAL_CONFIG["required_channels"] else "None"
+        await update.message.reply_text(f"Current Channels: `{ch_list}`\n\nUsage: `/setchannel @Username` or `/setchannel <InviteLink>`", parse_mode="Markdown")
         return
-    GLOBAL_CONFIG["required_channel"] = " ".join(context.args)
-    await update.message.reply_text(f"✅ Required Join Channel successfully set to: `{GLOBAL_CONFIG['required_channel']}`", parse_mode="Markdown")
+    
+    new_ch = " ".join(context.args)
+    if new_ch not in GLOBAL_CONFIG["required_channels"]:
+        GLOBAL_CONFIG["required_channels"].append(new_ch)
+        
+    await update.message.reply_text(f"✅ Required Join Channel successfully added:\n`{new_ch}`\n\nTotal Active Channels: `{len(GLOBAL_CONFIG['required_channels'])}`", parse_mode="Markdown")
 
 async def cmd_removechannel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ Unauthorized!")
         return
-    GLOBAL_CONFIG["required_channel"] = ""
-    await update.message.reply_text("✅ *Join Channel Removed Successfully!*", parse_mode="Markdown")
+    GLOBAL_CONFIG["required_channels"] = []
+    await update.message.reply_text("✅ *All Join Channels Removed Successfully!*", parse_mode="Markdown")
 
 async def cmd_protect(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -456,7 +469,7 @@ async def cmd_protect(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
+    if GLOBAL_CONFIG["required_channels"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
         
@@ -479,7 +492,7 @@ async def cmd_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
+    if GLOBAL_CONFIG["required_channels"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
     if not context.args:
@@ -491,7 +504,7 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if GLOBAL_CONFIG["required_channel"] and not await check_subscription(context.bot, user_id):
+    if GLOBAL_CONFIG["required_channels"] and not await check_subscription(context.bot, user_id):
         await show_welcome(update, context)
         return
     statuses = engine.get_status()
@@ -527,8 +540,8 @@ async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYP
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized!")
         return
-    req_ch = GLOBAL_CONFIG["required_channel"]
-    if not req_ch:
+    channels = GLOBAL_CONFIG["required_channels"]
+    if not channels:
         await update.message.reply_text("❌ No Join Channel is currently set! Use `/setchannel` first.")
         return
     if not context.args:
@@ -536,12 +549,16 @@ async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     broadcast_msg = " ".join(context.args)
-    try:
-        ch_target = parse_channel_target(req_ch)
-        await context.bot.send_message(chat_id=ch_target, text=f"📢 *Announcement:*\n\n{broadcast_msg}", parse_mode="Markdown")
-        await update.message.reply_text("✅ Successfully published to the Channel!", parse_mode="Markdown")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Failed to publish to channel. Make sure bot is admin there.\nError: {e}")
+    success_pub = 0
+    for ch_link in channels:
+        try:
+            ch_target = parse_channel_target(ch_link)
+            await context.bot.send_message(chat_id=ch_target, text=f"📢 *Announcement:*\n\n{broadcast_msg}", parse_mode="Markdown")
+            success_pub += 1
+        except Exception as e:
+            print(f"Failed to publish to {ch_link}: {e}")
+            
+    await update.message.reply_text(f"✅ Successfully published to `{success_pub}` channels!", parse_mode="Markdown")
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
@@ -558,7 +575,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("💎 Forcesub Fixed Bot (@K4xHERE) is live...")
+    print("💎 Multi-Channel ForceSub Bot (@K4xHERE) is live...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
