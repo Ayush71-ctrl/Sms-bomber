@@ -12,8 +12,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Cal
 # ==============================================
 # ⚙️ CONFIG & DUAL ADMIN SETUP
 # ==============================================
-ADMIN_IDS = [8327651808, 8757231057]  # Aapki aur friend ki Admin IDs
-WELCOME_PHOTO = "pfp.jpg"  # Photo filename
+TOKEN = "8727210761:AAExnYPf8Twaud3umNGOtHQR-79MlZUsnmQ"  # Yahan apna token confirm kar lein
+ADMIN_IDS = [8327651808, 8757231057]  
+WELCOME_PHOTO = "pfp.jpg.jpeg"  
 
 USERS_DB = {}  
 PROTECTED_NUMBERS = {}  
@@ -398,7 +399,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         info = (
             "⚙️ *MAXX ULTRA CORE INFO*\n\n"
             "• *Developer:* `@K4xHERE`\n"
-            "• *Version:* `5.0 CLOUD SYNC FIXED`\n"
+            "• *Version:* `5.0 STABLE CLOUD`\n"
             "• *Status:* `🟢 Online & Fully Operational`"
         )
         await update_dynamic_message(update, context, info)
@@ -540,8 +541,6 @@ async def cmd_channelbroadcast(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"❌ Failed to publish to channel. Make sure bot is admin there.\nError: {e}")
 
 def main():
-    TOKEN = "8727210761:AAExnYPf8Twaud3umNGOtHQR-79MlZUsnmQ"
-    
     app = ApplicationBuilder().token(TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
@@ -556,10 +555,9 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("💎 Dual Admin Cloud-Sync Bot (@K4xHERE) is live...")
-    app.run_polling()
+    print("💎 Stable Cloud-Sync Bot (@K4xHERE) is live...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    # Start Flask Web Server in background for Render Port Binding
     threading.Thread(target=run_web, daemon=True).start()
     main()
